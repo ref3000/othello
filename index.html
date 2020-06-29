@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>†オセロ†</title>
+</head>
+
+<body>
+    <canvas width="800" height="800" style="width: 800px; height: 800px;" onclick="onClick(event)"></canvas>
+
+    <script>
+        var context = document.querySelector("canvas").getContext("2d");
+        context.globalAlpha = 1;
+
+        var field = Array.from(new Array(8), () => new Array(8).fill(0));
+        var actions = [];
+        var currentStone = 1;
+
+        reloadActions();
+
+        function getStone(x, y) {
+            if (x < 1 || x > 8 || y < 1 || y > 8) return -1;
+            return field[y - 1][x - 1];
+        }
+
+        function setStone(x, y, stone) {
+            if (x < 1 || x > 8 || y < 1 || y > 8) return;
+            field[y - 1][x - 1] = stone;
+        }
+
+        function drawRect(color, x, y, w, h) {
+            context.fillStyle = color;
+            context.fillRect(x, y, w, h);
+        }
+
+        function drawCircle(color, x, y, r) {
+            context.fillStyle = color;
+            context.beginPath();
+            context.arc(x, y, r, 0, 2 * Math.PI);
+            context.closePath();
+            context.fill();
+        }
+
+        function drawField() {
+            drawRect("white", 0, 0, 800, 800);
+            for (var y = 1; y <= 8; y++) {
+                for (var x = 1; x <= 8; x++) {
+                    drawRect("green", (x - 1) * 100, (y - 1) * 100, 99, 99);
+                    if (getStone(x, y) == 1) drawCircle("black", x * 100 - 50, y * 100 - 50, 44);
+                    if (getStone(x, y) == 2) drawCircle("white", x * 100 - 50, y * 100 - 50, 44);
+                }
+            }
+        }
+
+        function onClick(e) {
+            var rect = e.target.getBoundingClientRect()
+            var x = Math.floor((e.clientX - rect.left) / 100) + 1
+            var y = Math.floor((e.clientY - rect.top) / 100) + 1
+            if (canReverse(currentStone, x, y)) {
+                addAction(x, y, currentStone);
+            }
+        }
+
+        var dx = [0, 1, 1, 1, 0, -1, -1, -1];
+        var dy = [-1, -1, 0, 1, 1, 1, 0, -1];
+
+        function canReverse(stone, x, y) {
+            if (getStone(x, y) > 0) return;
+            for (var i = 0; i < 8; i++) {
+                if (getReversibleNum(stone, x + dx[i], y + dy[i], dx[i], dy[i], 0) > 0) return true;
+            }
+            return false;
+        }
+
+        function reloadActions() {
+            currentStone = 1;
+            field = Array.from(new Array(8), () => new Array(8).fill(0));
+            setStone(4, 5, 1);
+            setStone(5, 4, 1);
+            setStone(4, 4, 2);
+            setStone(5, 5, 2);
+            for (var i = 0; i < actions.length; i++) {
+                var action = actions[i];
+                putStone(action.x, action.y, action.stone);
+            }
+            drawField();
+        }
+
+        function putStone(x, y, stone) {
+            setStone(x, y, stone);
+            for (var i = 0; i < 8; i++) {
+                if (getReversibleNum(stone, x + dx[i], y + dy[i], dx[i], dy[i], 0) > 0) reverse(stone, x + dx[i], y + dy[i], dx[i], dy[i]);
+            }
+            currentStone = currentStone % 2 + 1;
+        }
+
+        function getReversibleNum(stone, x, y, dx, dy, n) {
+            if (getStone(x, y) < 1) return 0;
+            if (getStone(x, y) == stone) return n;
+            return getReversibleNum(stone, x + dx, y + dy, dx, dy, n + 1);
+        }
+
+        function reverse(stone, x, y, dx, dy) {
+            if (getStone(x, y) < 1) return;
+            if (getStone(x, y) == stone) return;
+            setStone(x, y, stone);
+            reverse(stone, x + dx, y + dy, dx, dy);
+        }
+
+        function addAction(x, y, stone) {
+            console.log("addAction", x, y, stone)
+            db.collection("actions").doc(String(actions.length + 10000)).set({
+                x: x,
+                y: y,
+                stone: stone
+            });
+        }
+    </script>
+
+    <!-- The core Firebase JS SDK is always required and must be listed first -->
+    <script src="https://www.gstatic.com/firebasejs/7.15.5/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.15.5/firebase-firestore.js"></script>
+
+    <script>
+        // Your web app's Firebase configuration
+        var firebaseConfig = {
+            apiKey: "AIzaSyD8F1resUpF8cKNcRM-v0dlkiKmCyJfxaw",
+            authDomain: "othello-ac140.firebaseapp.com",
+            databaseURL: "https://othello-ac140.firebaseio.com",
+            projectId: "othello-ac140",
+            storageBucket: "othello-ac140.appspot.com",
+            messagingSenderId: "307954798548",
+            appId: "1:307954798548:web:8007d324527bfaade21041"
+        };
+        // Initialize Firebase
+        var app = firebase.initializeApp(firebaseConfig);
+        var db = firebase.firestore(app);
+
+        db.collection("actions").onSnapshot(function (querySnapshot) {
+            querySnapshot.docChanges().forEach(function (change) {
+                actions.push(change.doc.data());
+            })
+            reloadActions();
+        })
+    </script>
+</body>
+
+</html>
