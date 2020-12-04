@@ -1,10 +1,6 @@
 <!DOCTYPE html>
 <html>
-
-<head>
-    <title>†オセロ†</title>
-</head>
-
+<head><title>†オセロ†</title></head>
 <body>
     <canvas width="800" height="800" style="width: 800px; height: 800px;" onclick="onClick(event)"></canvas>
     <div><button onclick="init()">盤面を初期化</button></div>
@@ -13,7 +9,6 @@
     <script src="https://www.gstatic.com/firebasejs/7.15.5/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.15.5/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.15.5/firebase-auth.js"></script>
-
     <script>
         // Your web app's Firebase configuration
         var firebaseConfig = {
@@ -26,21 +21,16 @@
             appId: "1:307954798548:web:8007d324527bfaade21041"
         };
         // Initialize Firebase
-        var app = firebase.initializeApp(firebaseConfig);
-        var db = firebase.firestore(app);
-        var uid = undefined;
-
+        var db = firebase.firestore(firebase.initializeApp(firebaseConfig));
+        var uid = null;
         firebase.auth().signInAnonymously();
         firebase.auth().onAuthStateChanged(function (user) {
             if (user) uid = user.uid;
-            console.log("uid", uid);
-        })
+        });
 
         db.collection("actions").orderBy("createdAt", "desc").limit(1).onSnapshot(function (querySnapshot) {
             querySnapshot.forEach(function(doc) {
-                var source = doc.metadata.hasPendingWrites ? "Local" : "Server";
                 var data = doc.data();
-                console.log(source, data);
                 ref = doc.ref;
                 field = JSON.parse(data.field);
                 selectedX = data.x;
@@ -51,17 +41,11 @@
         })
 
         var context = document.querySelector("canvas").getContext("2d");
-        context.globalAlpha = 1;
-
         var ref = null;
         var field = Array.from(new Array(8), () => new Array(8).fill(0));
         var currentStone = 1;
         var selectedX = 0;
         var selectedY = 0;
-        setStone(4, 5, 1);
-        setStone(5, 4, 1);
-        setStone(4, 4, 2);
-        setStone(5, 5, 2);
         drawField();
 
         function getStone(x, y) {
